@@ -71,14 +71,14 @@ void Collection::validate() {
     // Validate against stac extensions if present
     if (m_json.contains("stac_extensions"))
     {
-        NL::json extensions = stacValue(m_json, "stac_extensions");
+        const NL::json &extensions = stacValue(m_json, "stac_extensions");
         for (auto& extSchemaUrl: extensions)
         {
-            std::string url = stacValue<std::string>(extSchemaUrl,
+            const std::string& url = stacValue<std::string>(extSchemaUrl,
                 "", m_json);
 
             try {
-                NL::json schemaJson = m_connector.getJson(url);
+                const NL::json schemaJson = m_connector.getJson(url);
                 val.set_root_schema(schemaJson);
                 val.validate(m_json);
             }

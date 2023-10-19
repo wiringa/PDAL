@@ -206,6 +206,7 @@ void StacReader::addItem(Item& item)
     reader->setLog(log());
     m_merge.setInput(*reader);
     m_p->m_readerList.push_back(reader);
+    log()->get(LogLevel::Debug) << "Id selected: " << item.id() << std::endl;
 }
 
 void StacReader::handleItem(NL::json stacJson, std::string itemPath)
@@ -297,7 +298,9 @@ void StacReader::handleItemCollection(NL::json stacJson, std::string icPath)
     if (ic.init(*m_p->m_icFilters, m_args->rawReaderArgs, m_args->schemaUrls))
     {
         for (auto& item: ic.items())
+        {
             addItem(item);
+        }
     }
 }
 
@@ -466,7 +469,7 @@ void StacReader::initialize()
 
     NL::json stacJson = m_p->m_connector->getJson(m_filename);
 
-    std::string stacType = StacUtils::jsonValue<std::string>(stacJson, "type");
+    const std::string &stacType = StacUtils::jsonValue<std::string>(stacJson, "type");
     if (stacType == "Feature")
         handleItem(stacJson, m_filename);
     else if (stacType == "Catalog")

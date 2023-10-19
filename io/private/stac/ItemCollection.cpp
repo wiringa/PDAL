@@ -62,7 +62,7 @@ ItemList ItemCollection::items()
 bool ItemCollection::init(const Filters& filters, NL::json rawReaderArgs,
     SchemaUrls schemaUrls)
 {
-    const NL::json itemList = stacValue(m_json, "features");
+    const std::vector<NL::json> &itemList = stacValue<NL::json::array_t>(m_json, "features");
     for (const NL::json& itemJson: itemList)
     {
         Item item(itemJson, m_path, m_connector, m_validate);
@@ -73,14 +73,14 @@ bool ItemCollection::init(const Filters& filters, NL::json rawReaderArgs,
     }
     if (m_json.contains("links"))
     {
-        const NL::json links = stacValue(m_json, "links");
+        const NL::json &links = stacValue(m_json, "links");
         for (const NL::json& link: links)
         {
-            std::string target = stacValue<std::string>(
+            const std::string &target = stacValue<std::string>(
                 link, "rel", m_json);
             if (target == "next")
             {
-                std::string nextLinkPath = stacValue<std::string>(
+                const std::string &nextLinkPath = stacValue<std::string>(
                     link, "href", m_json);
                 std::string nextAbsPath =
                     handleRelativePath(m_path, nextLinkPath);

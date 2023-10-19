@@ -61,7 +61,7 @@ public:
     ItemList items();
 
 private:
-    NL::json m_json;
+    const NL::json m_json;
     std::string m_path;
     const connector::Connector& m_connector;
     bool m_validate;

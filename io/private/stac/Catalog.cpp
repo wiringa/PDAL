@@ -65,7 +65,7 @@ bool Catalog::init(const Filters& filters, NL::json rawReaderArgs,
     if (!filter(filters))
         return false;
 
-    std::string type = stacValue<std::string>(m_json, "type");
+    const std::string &type = stacValue<std::string>(m_json, "type");
     if (type == "Catalog")
         m_type = GroupType::catalog;
     if (type == "Collection")
@@ -75,15 +75,15 @@ bool Catalog::init(const Filters& filters, NL::json rawReaderArgs,
     if (m_validate)
         validate();
 
-    NL::json itemLinks = stacValue(m_json, "links");
+    const NL::json &itemLinks = stacValue(m_json, "links");
 
-    for (auto link: itemLinks)
+    for (const auto& link: itemLinks)
     {
         m_pool.add([this, &filters, rawReaderArgs, link]()
         {
-            const std::string linkType = stacValue<std::string>(
+            const std::string &linkType = stacValue<std::string>(
                 link, "rel", m_json);
-            const std::string linkPath = stacValue<std::string>(
+            const std::string &linkPath = stacValue<std::string>(
                 link, "href", m_json);
             const std::string absLinkPath = handleRelativePath(m_path, linkPath);
             try {

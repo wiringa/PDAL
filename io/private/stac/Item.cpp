@@ -117,7 +117,7 @@ NL::json Item::handleReaderArgs(NL::json rawReaderArgs)
     NL::json readerArgs;
     for (const NL::json& readerPipeline: rawReaderArgs)
     {
-        std::string driver =
+        const std::string &driver =
             jsonValue<std::string>(readerPipeline, "type");
         if (rawReaderArgs.contains(driver))
             throw pdal_error("Multiple instances of the same driver in"
@@ -142,7 +142,7 @@ Options Item::setReaderOptions(const NL::json& readerArgs,
 {
     Options readerOptions;
     if (readerArgs.contains(driver)) {
-        NL::json args = jsonValue(readerArgs, driver);
+        const NL::json &args = jsonValue(readerArgs, driver);
         for (auto& arg : args.items())
         {
             std::string key = arg.key();
@@ -151,12 +151,12 @@ Options Item::setReaderOptions(const NL::json& readerArgs,
 
             // if value is of type string, dump() returns string with
             // escaped string inside and kills pdal program args
-            std::string v;
+            // std::string v;
             if (type == NL::detail::value_t::string)
-                v = jsonValue<std::string>(val);
+                readerOptions.add(key, &jsonValue<std::string>(val));
             else
-                v = arg.value().dump();
-            readerOptions.add(key, v);
+                readerOptions.add(key, arg.value().dump());
+            // readerOptions.add(key, v);
         }
     }
 
@@ -172,15 +172,13 @@ std::string Item::extractDriverFromItem(const NL::json& asset) const
         { "application/vnd.laszip+copc", "readers.copc"}
     };
 
-    std::string assetPath = stacValue<std::string>(
+    const std::string &assetPath = stacValue<std::string>(
         asset, "href", m_json);
     std::string dataUrl = handleRelativePath(m_path, assetPath);
 
-    std::string contentType;
-
     if (asset.contains("type"))
     {
-        contentType = stacValue<std::string>(asset, "type", m_json);
+        const std::string &contentType = stacValue<std::string>(asset, "type", m_json);
         for(const auto& ct: contentTypes)
             if (Utils::iequals(ct.first, contentType))
                 return ct.second;
@@ -195,7 +193,7 @@ std::string Item::extractDriverFromItem(const NL::json& asset) const
             StringMap headers = m_connector.headRequest(dataUrl);
             if (headers.find("Content-Type") != headers.end())
             {
-                contentType = headers["Content-Type"];
+                const std::string contentType = headers["Content-Type"];
                 for(const auto& ct: contentTypes)
                     if (Utils::iequals(ct.first, contentType))
                         return ct.second;
@@ -242,10 +240,10 @@ void Item::validate()
     // Validate against stac extensions if present
     if (m_json.contains("stac_extensions"))
     {
-        NL::json extensions = stacValue(m_json, "stac_extensions");
+        const NL::json &extensions = stacValue(m_json, "stac_extensions");
         for (auto& extSchemaUrl: extensions)
         {
-            std::string url = stacValue<std::string>(extSchemaUrl, "", m_json);
+            const std::string &url = stacValue<std::string>(extSchemaUrl, "", m_json);
 
             try {
                 NL::json schemaJson = m_connector.getJson(url);
@@ -263,7 +261,7 @@ void Item::validate()
     }
 }
 
-void validateForFilter(NL::json json)
+void validateForFilter(const NL::json &json)
 {
     stacId(json);
     stacValue(json, "assets");
@@ -271,43 +269,43 @@ void validateForFilter(NL::json json)
     stacValue(json, "geometry");
 }
 
-bool matchProperty(std::string key, NL::json val, NL::json properties,
+bool matchProperty(std::string key, NL::json val, const NL::json &properties,
     NL::detail::value_t type)
 {
     switch (type)
     {
         case NL::detail::value_t::string:
         {
-            std::string desired = jsonValue<std::string>(val);
-            std::string value = jsonValue<std::string>(properties, key);
+            const std::string &desired = jsonValue<std::string>(val);
+            const std::string &value = jsonValue<std::string>(properties, key);
             return value == desired;
             break;
         }
         case NL::detail::value_t::number_unsigned:
         {
-            uint64_t value = jsonValue<uint64_t>(properties, key);
-            uint64_t desired = jsonValue<uint64_t>(val);
+            const uint64_t &value = jsonValue<uint64_t>(properties, key);
+            const uint64_t &desired = jsonValue<uint64_t>(val);
             return value == desired;
             break;
         }
         case NL::detail::value_t::number_integer:
         {
-            int value = jsonValue<int>(properties,key);
-            int desired = jsonValue<int>(val);
+            const int &value = jsonValue<int64_t>(properties, key);
+            const int &desired = jsonValue<int64_t>(val);
             return value == desired;
             break;
         }
         case NL::detail::value_t::number_float:
         {
-            double value = jsonValue<double>(properties, key);
-            double desired = jsonValue<double>(val);
+            const double &value = jsonValue<double>(properties, key);
+            const double &desired = jsonValue<double>(val);
             return value == desired;
             break;
         }
         case NL::detail::value_t::boolean:
         {
-            bool value = jsonValue<bool>(properties, key);
-            bool desired = jsonValue<bool>(val);
+            const bool &value = jsonValue<bool>(properties, key);
+            const bool &desired = jsonValue<bool>(val);
             return value == desired;
             break;
         }
@@ -359,13 +357,12 @@ bool Item::filterBounds(BOX3D bounds, SpatialReference srs)
 
     //If stac item has null geometry and bounds have been included
     //for filtering, then the Item will be excluded.
-    NL::json geometry = stacValue(m_json, "geometry");
-    if (geometry.type() == NL::detail::value_t::null)
-        return false;
+    // if (geometry.type() == NL::detail::value_t::null)
+    //     return false;
 
     //STAC's base geometries will always be represented in 4326.
     const SpatialReference stacSrs("EPSG:4326");
-    Polygon stacPolygon(geometry.dump(), stacSrs);
+    Polygon stacPolygon(NL::json(stacValue(m_json, "geometry")).dump(), stacSrs);
     if (!stacPolygon.valid())
         throw stac_error(m_id, "item",
             "Polygon created from STAC 'geometry' key is invalid");
@@ -393,13 +390,13 @@ bool Item::filterBounds(BOX3D bounds, SpatialReference srs)
 
 bool Item::filterProperties(const NL::json& filterProps)
 {
-    NL::json itemProperties = stacValue(m_json, "properties");
+    const NL::json &itemProperties = stacValue(m_json, "properties");
     if (!filterProps.empty())
     {
         for (auto &it: filterProps.items())
         {
             std::string key = it.key();
-            NL::json stacVal = stacValue(itemProperties, key, m_json);
+            const NL::json &stacVal = stacValue(itemProperties, key, m_json);
             NL::detail::value_t stacType = stacVal.type();
 
             NL::json filterVal = it.value();
@@ -425,7 +422,7 @@ bool Item::filterProperties(const NL::json& filterProps)
 
 bool Item::filterDates(DatePairs dates)
 {
-    NL::json properties = stacValue(m_json, "properties");
+    const NL::json &properties = stacValue(m_json, "properties");
 
     // DateTime
     // If STAC datetime fits in *any* of the supplied ranges,
@@ -435,7 +432,7 @@ bool Item::filterDates(DatePairs dates)
         if (properties.contains("datetime") &&
             properties.at("datetime").type() != NL::detail::value_t::null)
         {
-            std::string stacDateStr = stacValue(properties,
+            const std::string &stacDateStr = stacValue<std::string>(properties,
                 "datetime", m_json);
 
             try
@@ -456,9 +453,9 @@ bool Item::filterDates(DatePairs dates)
             properties.contains("end_datetime"))
         {
                 // Handle if STAC object has start and end datetimes instead of one
-                std::string endDateStr = stacValue(properties,
+                const std::string &endDateStr = stacValue<std::string>(properties,
                     "end_datetime", m_json);
-                std::string startDateStr = stacValue(properties,
+                const std::string &startDateStr = stacValue<std::string>(properties,
                     "end_datetime", m_json);
 
                 std::time_t stacEndTime = getStacTime(endDateStr);
@@ -489,15 +486,14 @@ bool Item::filterDates(DatePairs dates)
 
 bool Item::filterAssets(std::vector<std::string> assetNames)
 {
-    NL::json asset;
-    NL::json assetList = stacValue(m_json, "assets");
+    const NL::json &assetList = stacValue(m_json, "assets");
     for (auto& name: assetNames)
     {
         if (assetList.contains(name))
         {
-            asset = stacValue(assetList, name, m_json);
+            const NL::json &asset = stacValue(assetList, name, m_json);
             m_driver = extractDriverFromItem(asset);
-            std::string assetPath = stacValue(asset, "href", m_json);
+            const std::string &assetPath = stacValue<std::string>(asset, "href", m_json);
             m_assetPath = handleRelativePath(m_path, assetPath);
         }
     }
@@ -526,7 +522,7 @@ bool Item::filterCol(std::vector<RegEx> ids)
         if (!m_json.contains("collection"))
             return false;
 
-        std::string colId = stacValue<std::string>(
+        const std::string &colId = stacValue<std::string>(
             m_json, "collection");
         for (auto& id: ids)
             if (std::regex_match(colId, id.regex()))

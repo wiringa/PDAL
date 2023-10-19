@@ -70,18 +70,35 @@ namespace StacUtils
 
     std::string handleRelativePath(std::string srcPath, std::string linkPath);
     std::time_t getStacTime(std::string in);
-    std::string stacId(const NL::json& stac);
-    std::string stacType(const NL::json& stac);
-    std::string icSelfPath(const NL::json& json);
+    const std::string &stacId(const NL::json& stac);
+    const std::string &stacType(const NL::json& stac);
+    const std::string &icSelfPath(const NL::json& json);
 
-    template <class T = NL::json>
-    inline T jsonValue(const NL::json& json, std::string key = "")
+    // template <class Z = NL::json::object_t>
+    // inline const Z &jsonRef(const NL::json& json, std::string key = "")
+    // {
+    //     try
+    //     {
+    //         if (key.empty())
+    //             return json.get_ref<const Z &>();
+    //         return json.at(key).get_ref<const Z &>();
+    //     }
+    //     catch (NL::detail::exception& e)
+    //     {
+    //         std::stringstream msg;
+    //         msg << "Error: " << e.what() << ", for object " << json.dump();
+    //         throw pdal_error(msg.str());
+    //     }
+    // }
+
+    template <class T = NL::json::object_t>
+    inline const T &jsonValue(const NL::json& json, std::string key = "")
     {
         try
         {
             if (key.empty())
-                return json.get<T>();
-            return json.at(key).get<T>();
+                return json.get_ref<const T &>();
+            return json.at(key).get_ref<const T &>();
         }
         catch (NL::detail::exception& e)
         {
@@ -91,16 +108,16 @@ namespace StacUtils
         }
     }
 
-    template <class U = NL::json>
-    inline U stacValue(const NL::json& stac, std::string key = "",
+    template <class U = NL::json::object_t>
+    inline const U &stacValue(const NL::json& stac, std::string key = "",
         const NL::json& rootJson = {})
     {
 
         try
         {
             if (key.empty())
-                return stac.get<U>();
-            return stac.at(key).get<U>();
+                return stac.get_ref<const U &>();
+            return stac.at(key).get_ref<const U &>();
         }
         catch (NL::detail::exception& e)
         {
@@ -108,13 +125,11 @@ namespace StacUtils
                 NL::json stacCheck = stac;
                 if (!rootJson.empty())
                     stacCheck = rootJson;
-                std::string type = stacType(stacCheck);
-                std::string id;
+                const std::string type = stacType(stacCheck);
                 if (type == "FeatureCollection")
-                    id = icSelfPath(stacCheck);
+                    throw stac_error(icSelfPath(stacCheck), type, e.what());
                 else
-                    id = stacId(stacCheck);
-                throw stac_error(id, type, e.what());
+                    throw stac_error(stacId(stacCheck), type, e.what());
             }
             catch (std::exception& )
             {
