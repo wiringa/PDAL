@@ -51,8 +51,8 @@ namespace stac
 
     typedef std::pair<std::string, std::string> StacError;
     typedef std::deque<StacError> ErrorList;
-    typedef std::vector<Item> ItemList;
-    typedef std::vector<std::unique_ptr<Catalog>> SubList;
+    typedef std::vector<std::shared_ptr<Item>> ItemList;
+    typedef std::vector<std::shared_ptr<Catalog>> SubList;
     typedef std::deque<std::pair<std::time_t, std::time_t>> DatePairs;
 
     enum GroupType
@@ -73,23 +73,6 @@ namespace StacUtils
     const std::string &stacId(const NL::json& stac);
     const std::string &stacType(const NL::json& stac);
     const std::string &icSelfPath(const NL::json& json);
-
-    // template <class Z = NL::json::object_t>
-    // inline const Z &jsonRef(const NL::json& json, std::string key = "")
-    // {
-    //     try
-    //     {
-    //         if (key.empty())
-    //             return json.get_ref<const Z &>();
-    //         return json.at(key).get_ref<const Z &>();
-    //     }
-    //     catch (NL::detail::exception& e)
-    //     {
-    //         std::stringstream msg;
-    //         msg << "Error: " << e.what() << ", for object " << json.dump();
-    //         throw pdal_error(msg.str());
-    //     }
-    // }
 
     template <class T = NL::json::object_t>
     inline const T &jsonValue(const NL::json& json, std::string key = "")

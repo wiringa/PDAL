@@ -35,6 +35,7 @@
 #pragma once
 
 #include "Item.hpp"
+#include <pdal/util/ThreadPool.hpp>
 
 namespace pdal
 {
@@ -58,10 +59,10 @@ public:
     };
 
     bool init(const Filters& filters, NL::json rawReaderArgs, SchemaUrls schemaUrls);
-    ItemList items();
+    const ItemList& items();
 
 private:
-    const NL::json m_json;
+    const NL::json& m_json;
     std::string m_path;
     const connector::Connector& m_connector;
     bool m_validate;

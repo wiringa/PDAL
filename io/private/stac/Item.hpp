@@ -67,7 +67,7 @@ public:
         bool validate);
 
     ~Item();
-    Item(const Item& item);
+    // Item(const Item& item);
 
     struct Filters {
         std::vector<RegEx> ids;
@@ -82,13 +82,13 @@ public:
     bool init(const Filters& filters, NL::json rawReaderArgs, SchemaUrls schemaUrls);
 
     std::string id();
-    std::string driver();
+    const std::string driver();
     Options options();
     std::string assetPath();
 
 private:
 
-    const NL::json m_json;
+    const NL::json& m_json;
     const std::string m_path;
 
     const connector::Connector& m_connector;

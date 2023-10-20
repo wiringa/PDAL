@@ -57,11 +57,11 @@ Item::Item(const NL::json& json,
 Item::~Item()
 {}
 
-Item::Item(const Item& item):
-    m_json(item.m_json), m_path(item.m_path), m_connector(item.m_connector),
-    m_driver(item.m_driver), m_schemaUrls(item.m_schemaUrls),
-    m_readerOptions(item.m_readerOptions)
-{}
+// Item::Item(const Item& item):
+//     m_json(item.m_json), m_path(item.m_path), m_connector(item.m_connector),
+//     m_driver(item.m_driver), m_schemaUrls(item.m_schemaUrls),
+//     m_readerOptions(item.m_readerOptions)
+// {}
 
 bool Item::init(const Filters& filters, NL::json rawReaderArgs,
         SchemaUrls schemaUrls)
@@ -86,7 +86,7 @@ std::string Item::id()
     return stacId(m_json);
 }
 
-std::string Item::driver()
+const std::string Item::driver()
 {
     return m_driver;
 }
@@ -354,18 +354,51 @@ bool Item::filterBounds(BOX3D bounds, SpatialReference srs)
 
     //Skip bbox altogether and stick with geometry, which will be much
     //more descriptive than bbox
-
-    //If stac item has null geometry and bounds have been included
-    //for filtering, then the Item will be excluded.
-    // if (geometry.type() == NL::detail::value_t::null)
-    //     return false;
-
-    //STAC's base geometries will always be represented in 4326.
+    Polygon stacPolygon;
     const SpatialReference stacSrs("EPSG:4326");
-    Polygon stacPolygon(NL::json(stacValue(m_json, "geometry")).dump(), stacSrs);
-    if (!stacPolygon.valid())
-        throw stac_error(m_id, "item",
-            "Polygon created from STAC 'geometry' key is invalid");
+    if (m_json.find("bbox") != m_json.end())
+    {
+        const auto& edges = stacValue<NL::json::array_t>(m_json, "bbox");
+        if (edges.size() == 4)
+        {
+            const BOX3D stacbox(BOX2D(
+                edges[0].get_ref<const double&>(),
+                edges[1].get_ref<const double&>(),
+                edges[2].get_ref<const double&>(),
+                edges[3].get_ref<const double&>()
+            ));
+            stacPolygon = Polygon(stacbox);
+        }
+        else if (edges.size() == 6)
+        {
+            const BOX3D stacbox(
+                edges[0].get_ref<const double&>(),
+                edges[1].get_ref<const double&>(),
+                edges[2].get_ref<const double&>(),
+                edges[3].get_ref<const double&>(),
+                edges[4].get_ref<const double&>(),
+                edges[5].get_ref<const double&>()
+            );
+            stacPolygon = Polygon(stacbox);
+        }
+
+        stacPolygon.setSpatialReference(stacSrs);
+    }
+    else
+    {
+        //If stac item has null geometry and bounds have been included
+        //for filtering, then the Item will be excluded.
+        const NL::json& geometry = stacValue(m_json, "geometry");
+        std::string g = geometry.dump();
+        // if (geometry.type() == NL::detail::value_t::null)
+        //     return false;
+
+        //STAC's base geometries will always be represented in 4326.
+        Polygon stacPolygon(g, stacSrs);
+        if (!stacPolygon.valid())
+            throw stac_error(m_id, "item",
+                "Polygon created from STAC 'geometry' key is invalid");
+    }
 
     Polygon userPolygon(bounds);
     if (!srs.empty() && srs != stacSrs)

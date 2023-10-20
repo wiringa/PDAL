@@ -66,8 +66,8 @@ public:
         Filters* colFilters;
     };
 
-    ItemList& items();
-    SubList& subs();
+    const ItemList& items();
+    const SubList& subs();
     std::string id();
     ErrorList errors();
     GroupType type();

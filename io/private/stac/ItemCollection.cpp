@@ -54,7 +54,7 @@ ItemCollection::ItemCollection(const NL::json& json,
 ItemCollection::~ItemCollection()
 {}
 
-ItemList ItemCollection::items()
+const ItemList& ItemCollection::items()
 {
     return m_itemList;
 }
@@ -65,8 +65,10 @@ bool ItemCollection::init(const Filters& filters, NL::json rawReaderArgs,
     const std::vector<NL::json> &itemList = stacValue<NL::json::array_t>(m_json, "features");
     for (const NL::json& itemJson: itemList)
     {
-        Item item(itemJson, m_path, m_connector, m_validate);
-        if (item.init(*filters.itemFilters, rawReaderArgs, schemaUrls))
+        std::shared_ptr<Item> item(new Item(itemJson, m_path, m_connector, m_validate));
+        // Item item(itemJson, m_path, m_connector, m_validate);
+        bool valid = item->init(*filters.itemFilters, rawReaderArgs, schemaUrls);
+        if (valid)
         {
             m_itemList.push_back(item);
         }
@@ -91,7 +93,7 @@ bool ItemCollection::init(const Filters& filters, NL::json rawReaderArgs,
 
                 if (ic.init(filters, rawReaderArgs, schemaUrls))
                     for (auto& item: ic.items())
-                        m_itemList.push_back(item);
+                        m_itemList.push_back(std::move(item));
             }
         }
     }

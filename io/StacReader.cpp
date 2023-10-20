@@ -243,8 +243,8 @@ void StacReader::handleNested(Catalog& c)
             m_p->m_colList.push_back(sub->id());
 
         //collect items from sub catalogs
-        for (Item& item: sub->items())
-            addItem(item);
+        for (const auto& item: sub->items())
+            addItem(*item);
     }
 }
 
@@ -263,8 +263,8 @@ void StacReader::handleCatalog(NL::json stacJson, std::string catPath)
         //iteracted
         handleNested(c);
         //collect items from root
-        for (Item& item: c.items())
-            addItem(item);
+        for (const auto& item: c.items())
+            addItem(*item);
     }
 
     printErrors(c);
@@ -283,8 +283,8 @@ void StacReader::handleCollection(NL::json stacJson, std::string colPath)
         m_p->m_colList.push_back(c.id());
         handleNested(c);
         //collect items from root
-        for (Item& item: c.items())
-            addItem(item);
+        for (const auto& item: c.items())
+            addItem(*item);
     }
 
     printErrors(c);
@@ -297,9 +297,9 @@ void StacReader::handleItemCollection(NL::json stacJson, std::string icPath)
 
     if (ic.init(*m_p->m_icFilters, m_args->rawReaderArgs, m_args->schemaUrls))
     {
-        for (auto& item: ic.items())
+        for (const auto& item: ic.items())
         {
-            addItem(item);
+            addItem(*item);
         }
     }
 }
@@ -469,7 +469,7 @@ void StacReader::initialize()
 
     NL::json stacJson = m_p->m_connector->getJson(m_filename);
 
-    const std::string &stacType = StacUtils::jsonValue<std::string>(stacJson, "type");
+    const std::string& stacType = StacUtils::jsonValue<std::string>(stacJson, "type");
     if (stacType == "Feature")
         handleItem(stacJson, m_filename);
     else if (stacType == "Catalog")

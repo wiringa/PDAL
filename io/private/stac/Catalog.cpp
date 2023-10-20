@@ -132,7 +132,7 @@ void Catalog::hoistNested()
         catalog->hoistNested();
         for (auto& cat: catalog->subs())
         {
-            m_subCatalogs.push_back(std::move(cat));
+            m_subCatalogs.push_back(cat);
         }
     }
 }
@@ -151,9 +151,9 @@ void Catalog::collectErrors()
 void Catalog::handleItem(const Item::Filters& f, NL::json readerArgs, std::string path)
 {
         NL::json itemJson = m_connector.getJson(path);
-        Item item(itemJson, path, m_connector, m_validate);
+        std::shared_ptr<Item> item(new Item(itemJson, path, m_connector, m_validate));
 
-        bool valid = item.init(f, readerArgs, m_schemaUrls);
+        bool valid = item->init(f, readerArgs, m_schemaUrls);
         if (valid)
         {
             std::lock_guard<std::mutex> lock(m_mutex);
@@ -164,7 +164,7 @@ void Catalog::handleItem(const Item::Filters& f, NL::json readerArgs, std::strin
 void Catalog::handleCol(const Filters& f, NL::json readerArgs, std::string path)
 {
     NL::json collectionJson = m_connector.getJson(path);
-    std::unique_ptr<Collection> collection(new Collection(
+    std::shared_ptr<Collection> collection(new Collection(
         collectionJson, path, m_connector, m_pool, m_validate));
 
     //init will return false if collection has no items or sub catalogs/collections
@@ -172,14 +172,14 @@ void Catalog::handleCol(const Filters& f, NL::json readerArgs, std::string path)
     if (passed)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        m_subCatalogs.push_back(std::move(collection));
+        m_subCatalogs.push_back(collection);
     }
 }
 
 void Catalog::handleCat(const Filters& f, NL::json readerArgs, std::string path)
 {
     NL::json catalogJson = m_connector.getJson(path);
-    std::unique_ptr<Catalog> catalog(new Catalog(
+    std::shared_ptr<Catalog> catalog(new Catalog(
         catalogJson, path, m_connector, m_pool, m_validate));
 
     //init will return false if catalog has no items or sub catalogs/collections
@@ -187,16 +187,16 @@ void Catalog::handleCat(const Filters& f, NL::json readerArgs, std::string path)
     if (passed)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        m_subCatalogs.push_back(std::move(catalog));
+        m_subCatalogs.push_back(catalog);
     }
 }
 
-ItemList& Catalog::items()
+const ItemList& Catalog::items()
 {
     return m_itemList;
 }
 
-SubList& Catalog::subs()
+const SubList& Catalog::subs()
 {
     return m_subCatalogs;
 }
